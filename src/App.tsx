@@ -44,6 +44,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import pptxgen from "pptxgenjs";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -287,6 +288,80 @@ export default function App() {
     }
     
     pdf.save(`電力管理報告_${new Date().toLocaleDateString()}.pdf`);
+  };
+
+  const exportPPT = async () => {
+    if (!reportRef.current) return;
+    
+    // Create PPTX instance
+    const pres = new pptxgen();
+    pres.layout = 'LAYOUT_16x9';
+
+    // Slide 1: Cover
+    let slide = pres.addSlide();
+    slide.background = { fill: 'FFFFFF' };
+    
+    slide.addText("電力管理分析報告", {
+      x: 0, y: '35%', w: '100%', h: 1,
+      fontSize: 44, bold: true, color: '0f172a',
+      align: 'center', fontFace: 'Inter'
+    });
+    
+    slide.addText(`龍泉分院各大樓電力度數 | ${baseMonth}`, {
+      x: 0, y: '50%', w: '100%', h: 0.5,
+      fontSize: 18, color: '64748b',
+      align: 'center', fontFace: 'Inter'
+    });
+
+    const captureToPage = async (id: string, title?: string) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      
+      const canvas = await html2canvas(el, { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      const data = canvas.toDataURL('image/png');
+      
+      let s = pres.addSlide();
+      if (title) {
+        s.addText(title, { x: 0.5, y: 0.2, w: '90%', fontSize: 18, bold: true, color: '0f172a' });
+      }
+      
+      // Calculate aspect ratio to prevent stretching
+      const imgWidth = 9; // Max width in inches for 16x9 (approx)
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // If height is too much, scale down the width
+      let finalW = imgWidth;
+      let finalH = imgHeight;
+      if (finalH > 4.5) { // Leave room for title and padding
+        finalH = 4.5;
+        finalW = (canvas.width * finalH) / canvas.height;
+      }
+
+      s.addImage({
+        data,
+        x: (10 - finalW) / 2, // Center horizontally
+        y: title ? 1.0 : 0.5,
+        w: finalW,
+        h: finalH
+      });
+    };
+
+    // Capture individual components
+    await captureToPage('ppt-section-1-chart', '各大樓用電度數比較與增減情形 (圖表)');
+    await captureToPage('ppt-section-1-table', '各大樓用電度數比較與增減情形 (數據)');
+    await captureToPage('ppt-page-3', '各大樓用電度數比較分析');
+    
+    // Multi-page trend analysis
+    await captureToPage('ppt-trend-1', '全院趨勢分析 (1/3)');
+    await captureToPage('ppt-trend-2', '全院趨勢分析 (2/3)');
+    await captureToPage('ppt-trend-3', '全院趨勢分析 (3/3)');
+
+    pres.writeFile({ fileName: `電力管理報告_${new Date().toLocaleDateString()}.pptx` });
   };
 
   return (
@@ -562,10 +637,16 @@ export default function App() {
                   </div>
                 )}
 
-                <Button onClick={exportPDF} variant="outline" className="ml-auto gap-2 px-6">
-                  <Download className="w-4 h-4" />
-                  匯出 PDF 報告
-                </Button>
+                <div className="ml-auto flex gap-2">
+                  <Button onClick={exportPPT} variant="outline" className="gap-2 px-6">
+                    <FileText className="w-4 h-4" />
+                    匯出 PPT 簡報
+                  </Button>
+                  <Button onClick={exportPDF} variant="outline" className="gap-2 px-6">
+                    <Download className="w-4 h-4" />
+                    匯出 PDF 報告
+                  </Button>
+                </div>
               </div>
             </Card>
 
@@ -602,7 +683,7 @@ export default function App() {
                           dataKey="name" 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                          tick={{ fill: '#64748b', fontSize: 13, fontWeight: 700 }}
                           interval={0}
                           angle={-45}
                           textAnchor="end"
@@ -610,7 +691,7 @@ export default function App() {
                         <YAxis 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                          tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 600 }}
                           tickFormatter={(value) => value.toLocaleString()}
                         />
                         <Tooltip 
@@ -693,8 +774,8 @@ export default function App() {
                             })
                           }>
                             <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={15} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} dy={15} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} />
                             <Tooltip 
                               contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', padding: '12px' }}
                               itemStyle={{ color: '#fff', fontWeight: 'bold' }}
@@ -714,10 +795,10 @@ export default function App() {
                             />
                             <Bar dataKey="base" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
                             <Bar dataKey="increase" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]}>
-                              <LabelList dataKey="increase" position="top" formatter={(v: number) => v > 0 ? v.toLocaleString() : ''} style={{ fill: '#ef4444', fontSize: 10, fontWeight: 900 }} />
+                              <LabelList dataKey="increase" position="top" formatter={(v: number) => v > 0 ? v.toLocaleString() : ''} style={{ fill: '#ef4444', fontSize: 12, fontWeight: 900 }} />
                             </Bar>
                             <Bar dataKey="decrease" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]}>
-                              <LabelList dataKey="decrease" position="top" formatter={(v: number) => v > 0 ? v.toLocaleString() : ''} style={{ fill: '#10b981', fontSize: 10, fontWeight: 900 }} />
+                              <LabelList dataKey="decrease" position="top" formatter={(v: number) => v > 0 ? v.toLocaleString() : ''} style={{ fill: '#10b981', fontSize: 12, fontWeight: 900 }} />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -738,8 +819,8 @@ export default function App() {
                             }))
                           }>
                             <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={15} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} dy={15} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} />
                             <Tooltip />
                             <Line type="monotone" dataKey="usage" stroke="#2563eb" strokeWidth={4} dot={{ r: 6, fill: '#2563eb', strokeWidth: 3, stroke: '#fff' }} activeDot={{ r: 10, strokeWidth: 0 }} />
                           </LineChart>
@@ -751,7 +832,7 @@ export default function App() {
               )}
 
               {analysisMode === 'compare' && (
-                <div className="space-y-12">
+                <div className="space-y-12" id="ppt-page-3">
                   <div className="text-center space-y-3">
                     <div className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-2">Comparative Analysis</div>
                     <h2 className="text-4xl font-black text-slate-900 tracking-tight">各大樓用電度數比較</h2>
@@ -772,18 +853,18 @@ export default function App() {
                           dataKey="name" 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{ fill: '#0f172a', fontSize: 11, fontWeight: 700 }}
+                          tick={{ fill: '#0f172a', fontSize: 13, fontWeight: 800 }}
                           interval={0}
                           angle={-45}
                           textAnchor="end"
                           height={80}
                         />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} />
                         <Tooltip />
                         <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px' }} />
                         {sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map((date, idx) => (
                           <Bar key={date} dataKey={date} fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 6]} radius={[6, 6, 0, 0]} barSize={20}>
-                            <LabelList dataKey={date} position="top" formatter={(v: number) => v > 1000 ? (v/1000).toFixed(1) + 'k' : v} style={{ fontSize: 9, fontWeight: 900 }} />
+                            <LabelList dataKey={date} position="top" formatter={(v: number) => v > 1000 ? (v/1000).toFixed(1) + 'k' : v} style={{ fontSize: 11, fontWeight: 900 }} />
                           </Bar>
                         ))}
                       </BarChart>
@@ -793,7 +874,7 @@ export default function App() {
               )}
 
               {analysisMode === 'growth' && (
-                <div className="space-y-12">
+                <div className="space-y-12" id="ppt-page-2">
                   <div className="text-center space-y-3">
                     <div className="inline-block px-4 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-2">Growth & Efficiency</div>
                     <h2 className="text-4xl font-black text-slate-900 tracking-tight">各大樓電力度數增減分析</h2>
@@ -874,20 +955,20 @@ export default function App() {
                       <div className="text-4xl font-black text-slate-200">01</div>
                       <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">各大樓用電度數比較與增減情形</h3>
                     </div>
-                    <div className="h-[450px] w-full bg-slate-50 rounded-[2rem] p-10 border border-slate-100">
+                    <div id="ppt-section-1-chart" className="h-[450px] w-full bg-slate-50 rounded-[2rem] p-10 border border-slate-100 mb-8">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={BLD_CONFIG.map(b => ({ name: b.l, usage: getBuildingUsage(b.v, [baseMonth])[0] }))}>
                           <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700 }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700 }} />
                           <Tooltip />
                           <Bar dataKey="usage" fill="#0f172a" radius={[8, 8, 0, 0]}>
-                            <LabelList dataKey="usage" position="top" formatter={(v: number) => v.toLocaleString()} style={{ fill: '#0f172a', fontSize: 10, fontWeight: 900 }} />
+                            <LabelList dataKey="usage" position="top" formatter={(v: number) => v.toLocaleString()} style={{ fill: '#0f172a', fontSize: 12, fontWeight: 900 }} />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="overflow-hidden rounded-3xl border border-slate-200-60">
+                    <div id="ppt-section-1-table" className="overflow-hidden rounded-3xl border border-slate-200-60">
                       <table className="w-full text-xs text-left border-collapse">
                         <thead className="bg-slate-900 text-white">
                           <tr>
@@ -906,16 +987,18 @@ export default function App() {
                             const pre = usage[1];
                             const lastY = usage[2];
                             const diffM = cur - pre;
+                            const perM = pre ? ((diffM / pre) * 100).toFixed(1) : '0';
                             const diffY = lastY ? cur - lastY : null;
+                            const perY = lastY ? ((diffY! / lastY) * 100).toFixed(1) : null;
                             return (
                               <tr key={b.v} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-6 py-3 font-black text-slate-900">{b.l}</td>
                                 <td className="px-6 py-3 font-mono font-bold">{cur.toLocaleString()}</td>
                                 <td className={cn("px-6 py-3 font-black", diffM > 0 ? "text-red-600" : "text-emerald-600")}>
-                                  {diffM > 0 ? '+' : ''}{diffM.toLocaleString()}
+                                  {diffM > 0 ? '+' : ''}{diffM.toLocaleString()} ({perM}%)
                                 </td>
                                 <td className={cn("px-6 py-3 font-black", (diffY || 0) > 0 ? "text-red-600" : "text-emerald-600")}>
-                                  {diffY !== null ? `${diffY > 0 ? '+' : ''}${diffY.toLocaleString()}` : '-'}
+                                  {diffY !== null ? `${diffY > 0 ? '+' : ''}${diffY.toLocaleString()} (${perY}%)` : '-'}
                                 </td>
                               </tr>
                             );
@@ -928,24 +1011,120 @@ export default function App() {
                   <section className="space-y-8">
                     <div className="flex items-center gap-4">
                       <div className="text-4xl font-black text-slate-200">02</div>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">各大樓電力度數增減分析表</h3>
+                    </div>
+                    <div id="ppt-page-2" className="overflow-hidden rounded-3xl border border-slate-200-60 shadow-sm">
+                      <table className="w-full text-left border-collapse bg-white">
+                        <thead>
+                          <tr className="bg-slate-900 text-white">
+                            <th className="px-8 py-5 font-bold text-xs uppercase tracking-widest">大樓名稱</th>
+                            <th className="px-8 py-5 font-bold text-xs uppercase tracking-widest">本月度數</th>
+                            <th className="px-8 py-5 font-bold text-xs uppercase tracking-widest">較上月增減</th>
+                            <th className="px-8 py-5 font-bold text-xs uppercase tracking-widest">較去年增減</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {BLD_CONFIG.map(b => {
+                            const prev = getRelativeMonth(baseMonth, -1);
+                            const year = getRelativeMonth(baseMonth, -12);
+                            const usage = getBuildingUsage(b.v, [baseMonth, prev, year]);
+                            const cur = usage[0];
+                            const pre = usage[1];
+                            const lastY = usage[2];
+                            const diffM = cur - pre;
+                            const perM = pre ? ((diffM / pre) * 100).toFixed(1) : '0';
+                            const diffY = lastY ? cur - lastY : null;
+                            const perY = lastY ? ((diffY! / lastY) * 100).toFixed(1) : null;
+                            return (
+                              <tr key={b.v} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-8 py-5 font-bold text-slate-900">{b.l}</td>
+                                <td className="px-8 py-5 text-slate-700 font-mono font-bold">{cur.toLocaleString()}</td>
+                                <td className="px-8 py-5">
+                                  <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffM > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                    {diffM > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                    {diffM > 0 ? '+' : ''}{diffM.toLocaleString()} ({perM}%)
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5">
+                                  {diffY !== null ? (
+                                    <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffY > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                      {diffY > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                      {diffY > 0 ? '+' : ''}{diffY.toLocaleString()} ({perY}%)
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest">No Data</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section className="space-y-8">
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl font-black text-slate-200">03</div>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">各大樓用電度數比較分析</h3>
+                    </div>
+                    <div id="ppt-page-3" className="h-[500px] w-full bg-slate-50-50 rounded-3xl p-8 border border-slate-100 bg-white">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart 
+                          data={BLD_CONFIG.map(b => ({
+                            name: b.l,
+                            ...Object.fromEntries(
+                              sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map(d => [d, getBuildingUsage(b.v, [d])[0]])
+                            )
+                          }))}
+                        >
+                          <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#0f172a', fontSize: 13, fontWeight: 800 }}
+                            interval={0}
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                          />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} />
+                          <Tooltip />
+                          <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px' }} />
+                          {sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map((date, idx) => (
+                            <Bar key={date} dataKey={date} fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 6]} radius={[6, 6, 0, 0]} barSize={20} />
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </section>
+
+                  <section className="space-y-8">
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl font-black text-slate-200">04</div>
                       <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">全院各大樓趨勢分析</h3>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {BLD_CONFIG.map(b => (
-                        <div key={b.v} className="p-6 border border-slate-100 rounded-[2rem] bg-slate-50-50 hover:bg-white hover:shadow-xl transition-all group">
-                          <h4 className="text-xs font-black text-slate-400 mb-4 text-center uppercase tracking-widest group-hover:text-slate-900 transition-colors">{b.l}</h4>
-                          <div className="h-40">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map(d => ({ d, v: getBuildingUsage(b.v, [d])[0] }))}>
-                                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="d" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#94a3b8' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#94a3b8' }} domain={['auto', 'auto']} />
-                                <Line type="monotone" dataKey="v" stroke="#0f172a" strokeWidth={3} dot={{ r: 3, fill: '#0f172a' }}>
-                                  <LabelList dataKey="v" position="top" style={{ fontSize: 8, fontWeight: 900, fill: '#0f172a' }} formatter={(v: number) => v.toLocaleString()} />
-                                </Line>
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
+                    <div className="space-y-12">
+                      {[0, 1, 2].map(pageIdx => (
+                        <div key={pageIdx} id={`ppt-trend-${pageIdx + 1}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-8 border-t border-slate-100 first:border-0 first:pt-0">
+                          {BLD_CONFIG.slice(pageIdx * 6, (pageIdx + 1) * 6).map(b => (
+                            <div key={b.v} className="p-6 border border-slate-100 rounded-[2rem] bg-slate-50-50 hover:bg-white hover:shadow-xl transition-all group">
+                              <h4 className="text-xs font-black text-slate-400 mb-4 text-center uppercase tracking-widest group-hover:text-slate-900 transition-colors">{b.l}</h4>
+                              <div className="h-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map(d => ({ d, v: getBuildingUsage(b.v, [d])[0] }))}>
+                                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="d" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#94a3b8' }} domain={['auto', 'auto']} />
+                                    <Line type="monotone" dataKey="v" stroke="#0f172a" strokeWidth={3} dot={{ r: 3, fill: '#0f172a' }}>
+                                      <LabelList dataKey="v" position="top" style={{ fontSize: 8, fontWeight: 900, fill: '#0f172a' }} formatter={(v: number) => v.toLocaleString()} />
+                                    </Line>
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
