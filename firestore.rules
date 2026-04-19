@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: readings
+    // Document ID: auto-generated
+    // Fields:
+    //   - date: string (required) - Format 'YYY年MM月'
+    //   - meter: string (required) - Meter name
+    //   - value: number (required) - Reading value
+    //   - adjustment: number (optional) - Adjustment value
+    //   - usage: number (required) - Calculated usage
+    //   - ts: number (required) - Timestamp
+    //   - uid: string (required) - Owner UID
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "pvghdem@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidReading(data) {
+      return data.keys().hasAll(['date', 'meter', 'value', 'usage', 'ts']) &&
+             data.date is string && data.date.size() > 0 && data.date.size() < 20 &&
+             data.meter is string && data.meter.size() > 0 && data.meter.size() < 100 &&
+             data.value is number &&
+             data.usage is number &&
+             data.ts is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /readings/{readingId} {
+      // Allow public access as requested
+      allow read: if true;
+      allow create: if isValidReading(request.resource.data);
+      allow update: if isValidReading(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}

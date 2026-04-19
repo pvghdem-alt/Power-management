@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Reading": {
+      "title": "Reading",
+      "description": "A single meter reading for a specific month.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The month of the reading (e.g., '115年3月')."
+        },
+        "meter": {
+          "type": "string",
+          "description": "The name of the meter."
+        },
+        "value": {
+          "type": "number",
+          "description": "The reading value."
+        },
+        "adjustment": {
+          "type": "number",
+          "description": "The adjustment value."
+        },
+        "usage": {
+          "type": "number",
+          "description": "The calculated usage (value - previous value)."
+        },
+        "ts": {
+          "type": "number",
+          "description": "Timestamp of the entry."
+        }
+      },
+      "required": ["date", "meter", "value", "usage", "ts"]
+    }
+  },
+  "firestore": {
+    "/readings/{readingId}": {
+      "schema": "Reading",
+      "description": "Collection of all meter readings."
+    }
+  }
+}
