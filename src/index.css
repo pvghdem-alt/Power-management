@@ -61,6 +61,8 @@
   --color-amber-600: #d97706;
   --color-amber-700: #b45309;
   --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  
   --color-slate-200-60: #edf1f6;
   --color-slate-200-50: #f0f3f7;
   --color-slate-100-50: #f8fafc;
@@ -86,6 +88,17 @@
 @layer base {
   body {
     @apply font-sans bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+/* Fix for oklch/oklab parsing issues in html2canvas */
+::placeholder {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+@supports (color: color-mix(in oklab, red, red)) {
+  ::placeholder {
+    color: #94a3b8 !important;
   }
 }
 
