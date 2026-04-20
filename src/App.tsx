@@ -162,6 +162,14 @@ export default function App() {
     });
   }, [readings]);
 
+  const currentSelectedDates = useMemo(() => {
+    if (!startMonth || !endMonth) return sortedDates.slice(-6);
+    const startIdx = sortedDates.indexOf(startMonth);
+    const endIdx = sortedDates.indexOf(endMonth);
+    if (startIdx === -1 || endIdx === -1) return sortedDates.slice(-6);
+    return sortedDates.slice(startIdx, endIdx + 1);
+  }, [sortedDates, startMonth, endMonth]);
+
   const getBuildingUsage = (key: string, dates: string[]) => {
     const calcComplex = (main: string, subs: string[], dts: string[]) => {
       return dts.map(d => {
@@ -752,7 +760,7 @@ export default function App() {
                         data={BLD_CONFIG.map(b => ({
                           name: b.l,
                           ...Object.fromEntries(
-                            sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map(d => [d, getBuildingUsage(b.v, [d])[0]])
+                            currentSelectedDates.map(d => [d, getBuildingUsage(b.v, [d])[0]])
                           )
                         }))}
                       >
@@ -770,8 +778,8 @@ export default function App() {
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }} />
                         <Tooltip />
                         <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px' }} />
-                        {sortedDates.slice(sortedDates.indexOf(startMonth), sortedDates.indexOf(endMonth) + 1).map((date, idx) => (
-                          <Bar key={date} dataKey={date} fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 6]} radius={[6, 6, 0, 0]} barSize={20}>
+                        {currentSelectedDates.map((date, idx) => (
+                          <Bar key={date} dataKey={date} fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#6366f1', '#ec4899', '#f97316'][idx % 10]} radius={[6, 6, 0, 0]} barSize={20}>
                             <LabelList dataKey={date} position="top" formatter={(v: number) => v > 1000 ? (v/1000).toFixed(1) + 'k' : v} style={{ fontSize: 11, fontWeight: 900 }} />
                           </Bar>
                         ))}
@@ -836,6 +844,44 @@ export default function App() {
                             </tr>
                           );
                         })}
+                        <tr className="bg-slate-100 font-black border-t-2 border-slate-900">
+                          <td className="px-8 py-5 text-slate-900 uppercase tracking-widest text-xs">全院總計</td>
+                          {(() => {
+                            const prev = getRelativeMonth(baseMonth, -1);
+                            const year = getRelativeMonth(baseMonth, -12);
+                            let totalCur = 0; let totalPre = 0; let totalLastY: number | null = 0;
+                            BLD_CONFIG.forEach(b => {
+                              const usage = getBuildingUsage(b.v, [baseMonth, prev, year]);
+                              totalCur += usage[0]; totalPre += usage[1];
+                              if (totalLastY !== null && usage[2] !== null) { totalLastY += usage[2]; } else { totalLastY = null; }
+                            });
+                            const diffM = totalCur - totalPre;
+                            const perM = totalPre ? ((diffM / totalPre) * 100).toFixed(1) : '0';
+                            const diffY = totalLastY !== null ? totalCur - totalLastY : null;
+                            const perY = totalLastY !== null && totalLastY !== 0 ? ((diffY! / totalLastY) * 100).toFixed(1) : null;
+                            return (
+                              <>
+                                <td className="px-8 py-5 text-slate-700 font-mono font-bold">{totalCur.toLocaleString()}</td>
+                                <td className="px-8 py-5">
+                                  <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffM > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                    {diffM > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                    {diffM > 0 ? '+' : ''}{diffM.toLocaleString()} ({perM}%)
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5">
+                                  {diffY !== null ? (
+                                    <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffY > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                      {diffY > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                      {diffY > 0 ? '+' : ''}{diffY.toLocaleString()} ({perY}%)
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest">No Data</span>
+                                  )}
+                                </td>
+                              </>
+                            );
+                          })()}
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -864,14 +910,14 @@ export default function App() {
                     <div className="text-4xl font-black text-slate-200">01</div>
                     <div className="space-y-1">
                       <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">各大樓用電度數比較分析</h3>
-                      <p className="text-xs font-bold text-slate-400">顯示最近六個月用電變化趨勢</p>
+                      <p className="text-xs font-bold text-slate-400">顯示範圍：{startMonth} 至 {endMonth}</p>
                     </div>
                   </div>
                   <div id="ppt-section-0-chart" className="h-[520px] w-full bg-slate-50-50 rounded-[2rem] p-10 border border-slate-100 mb-8">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
                         data={BLD_CONFIG.map(b => {
-                          const months = sortedDates.slice(-6);
+                          const months = currentSelectedDates;
                           const usage = getBuildingUsage(b.v, months);
                           const data: any = { name: b.l };
                           months.forEach((m, i) => data[m] = usage[i]);
@@ -900,11 +946,11 @@ export default function App() {
                           iconType="circle" 
                           wrapperStyle={{ paddingBottom: '30px' }}
                         />
-                        {sortedDates.slice(-6).map((m, i) => (
+                        {currentSelectedDates.map((m, i) => (
                           <Bar 
                             key={m} 
                             dataKey={m} 
-                            fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][i % 6]} 
+                            fill={['#0f172a', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#6366f1', '#ec4899', '#f97316'][i % 10]} 
                             radius={[4, 4, 0, 0]}
                             isAnimationActive={false}
                           />
@@ -1058,6 +1104,44 @@ export default function App() {
                               </tr>
                             );
                           })}
+                          <tr className="bg-slate-100 font-black border-t-2 border-slate-900">
+                            <td className="px-8 py-4 text-slate-900 uppercase tracking-widest text-xs">全院總計</td>
+                            {(() => {
+                              const prev = getRelativeMonth(baseMonth, -1);
+                              const year = getRelativeMonth(baseMonth, -12);
+                              let totalCur = 0; let totalPre = 0; let totalLastY: number | null = 0;
+                              BLD_CONFIG.forEach(b => {
+                                const usage = getBuildingUsage(b.v, [baseMonth, prev, year]);
+                                totalCur += usage[0]; totalPre += usage[1];
+                                if (totalLastY !== null && usage[2] !== null) { totalLastY += usage[2]; } else { totalLastY = null; }
+                              });
+                              const diffM = totalCur - totalPre;
+                              const perM = totalPre ? ((diffM / totalPre) * 100).toFixed(1) : '0';
+                              const diffY = totalLastY !== null ? totalCur - totalLastY : null;
+                              const perY = totalLastY !== null && totalLastY !== 0 ? ((diffY! / totalLastY) * 100).toFixed(1) : null;
+                              return (
+                                <>
+                                  <td className="px-8 py-4 text-slate-700 font-mono font-bold">{totalCur.toLocaleString()}</td>
+                                  <td className="px-8 py-4">
+                                    <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffM > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                      {diffM > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                      {diffM > 0 ? '+' : ''}{diffM.toLocaleString()} ({perM}%)
+                                    </div>
+                                  </td>
+                                  <td className="px-8 py-4">
+                                    {diffY !== null ? (
+                                      <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full w-fit text-xs font-black", diffY > 0 ? "bg-red-50-50 text-red-600" : "bg-emerald-50-50 text-emerald-600")}>
+                                        {diffY > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                        {diffY > 0 ? '+' : ''}{diffY.toLocaleString()} ({perY}%)
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest">No Data</span>
+                                    )}
+                                  </td>
+                                </>
+                              );
+                            })()}
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -1073,7 +1157,7 @@ export default function App() {
                         <thead>
                           <tr className="bg-slate-900 text-white">
                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-widest border-r border-slate-800">大樓名稱</th>
-                            {sortedDates.filter(d => sortedDates.indexOf(d) >= sortedDates.indexOf(startMonth) && sortedDates.indexOf(d) <= sortedDates.indexOf(endMonth)).map(date => (
+                            {currentSelectedDates.map(date => (
                               <th key={date} className="px-6 py-4 font-bold text-xs uppercase tracking-widest text-center">{date}</th>
                             ))}
                           </tr>
@@ -1082,7 +1166,7 @@ export default function App() {
                           {BLD_CONFIG.map(b => (
                             <tr key={b.v} className="hover:bg-slate-50 transition-colors">
                               <td className="px-6 py-3 font-bold text-slate-900 border-r border-slate-100 bg-slate-50">{b.l}</td>
-                              {sortedDates.filter(d => sortedDates.indexOf(d) >= sortedDates.indexOf(startMonth) && sortedDates.indexOf(d) <= sortedDates.indexOf(endMonth)).map(date => {
+                              {currentSelectedDates.map(date => {
                                 const val = getBuildingUsage(b.v, [date])[0];
                                 return (
                                   <td key={date} className="px-6 py-3 text-center text-slate-700 font-mono text-sm">{val.toLocaleString()}</td>
@@ -1090,6 +1174,17 @@ export default function App() {
                               })}
                             </tr>
                           ))}
+                          <tr className="bg-slate-100 font-black border-t-2 border-slate-900">
+                            <td className="px-6 py-4 text-slate-900 border-r border-slate-200 bg-slate-100 uppercase tracking-widest text-xs">全院總計</td>
+                            {currentSelectedDates.map(date => {
+                              const total = BLD_CONFIG.reduce((sum, b) => sum + getBuildingUsage(b.v, [date])[0], 0);
+                              return (
+                                <td key={date} className="px-6 py-4 text-center text-blue-700 font-mono text-sm">
+                                  {total.toLocaleString()}
+                                </td>
+                              );
+                            })}
+                          </tr>
                         </tbody>
                       </table>
                     </div>
