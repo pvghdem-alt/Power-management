@@ -1052,13 +1052,20 @@ export default function App() {
                             const totalStr = totalVal.toLocaleString();
                             const inc = payload.increase || 0;
                             const dec = payload.decrease || 0;
+                            const diffStr = inc > 0 ? `+${inc.toLocaleString()}` : dec > 0 ? `-${dec.toLocaleString()}` : '';
+                            const diffColor = inc > 0 ? "#ef4444" : "#10b981";
                             
                             return (
-                              <text x={x + width / 2} y={y - 15} textAnchor="middle" fontSize={12} fontWeight={900}>
-                                <tspan fill="#000000">{totalStr}</tspan>
-                                {inc > 0 && <tspan fill="#ef4444"> (+{inc.toLocaleString()})</tspan>}
-                                {dec > 0 && <tspan fill="#10b981"> (-{dec.toLocaleString()})</tspan>}
-                              </text>
+                              <g>
+                                <text x={x + width / 2} y={y - 25} textAnchor="middle" fontSize={14} fontWeight={900} fill="#000000">
+                                  {totalStr}
+                                </text>
+                                {diffStr && (
+                                  <text x={x + width / 2} y={y - 8} textAnchor="middle" fontSize={13} fontWeight={900} fill={diffColor}>
+                                    {diffStr}
+                                  </text>
+                                )}
+                              </g>
                             );
                           }}
                         />
