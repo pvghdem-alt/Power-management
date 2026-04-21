@@ -13,7 +13,6 @@ import {
 import { auth, db } from './lib/firebase';
 import { Reading, BLD_CONFIG, METERS } from './types';
 import { 
-  LayoutDashboard, 
   Table as TableIcon, 
   BarChart3, 
   LogOut, 
@@ -309,14 +308,19 @@ export default function App() {
     let slide = pres.addSlide();
     slide.background = { fill: 'FFFFFF' };
     
+    slide.addImage({
+      path: window.location.origin + "/logo.png",
+      x: 4.25, y: 1.2, w: 1.5, h: 1.5
+    });
+
     slide.addText("電力管理分析報告", {
-      x: 0, y: '35%', w: '100%', h: 1,
+      x: 0, y: 3.2, w: '100%', h: 1,
       fontSize: 44, bold: true, color: '0f172a',
       align: 'center', fontFace: 'Inter'
     });
     
-    slide.addText(`龍泉分院各大樓電力度數 | ${baseMonth}`, {
-      x: 0, y: '50%', w: '100%', h: 0.5,
+    slide.addText(`屏東榮民總醫院龍泉分院各大樓電力度數 | ${baseMonth}`, {
+      x: 0, y: 4.5, w: '100%', h: 0.5,
       fontSize: 18, color: '64748b',
       align: 'center', fontFace: 'Inter'
     });
@@ -379,12 +383,17 @@ export default function App() {
       <header className="bg-white backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-slate-900 p-2.5 rounded-xl shadow-lg">
-              <LayoutDashboard className="w-6 h-6 text-white" />
+            <div className="bg-white p-1 rounded-xl shadow-lg border border-slate-100">
+              <img 
+                src="/logo.png" 
+                alt="屏東榮民總醫院 Logo" 
+                className="w-12 h-12 object-contain"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <h1 className="font-bold text-xl tracking-tight text-slate-900">電力管理系統</h1>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">龍泉分院數位平台</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">屏東榮民總醫院龍泉分院</p>
             </div>
           </div>
           
@@ -892,13 +901,18 @@ export default function App() {
                 <div className="space-y-20">
                   <div className="text-center space-y-6 border-b-4 border-slate-900 pb-12">
                     <div className="flex justify-center mb-4">
-                      <div className="bg-slate-900 p-4 rounded-3xl">
-                        <LayoutDashboard className="w-12 h-12 text-white" />
+                      <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-100">
+                        <img 
+                          src="/logo.png" 
+                          alt="屏東榮民總醫院 Logo" 
+                          className="w-24 h-24 object-contain"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
                     </div>
                     <h1 className="text-6xl font-black tracking-tighter text-slate-900 uppercase">電力管理分析報告</h1>
                     <div className="flex justify-center gap-12 text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
-                      <span>龍泉分院電力管理系統</span>
+                      <span>屏東榮民總醫院龍泉分院 電力管理系統</span>
                       <span>基準月份：{baseMonth}</span>
                     </div>
                   </div>
@@ -1229,7 +1243,7 @@ export default function App() {
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
-          <p className="text-slate-900 font-bold tracking-tight">龍泉分院電力管理系統</p>
+          <p className="text-slate-900 font-bold tracking-tight">屏東榮民總醫院龍泉分院 電力管理系統</p>
           <p className="text-slate-400 text-xs font-medium uppercase tracking-[0.2em]">
             © {new Date().getFullYear()} Digital Management Platform · Enterprise Edition
           </p>
