@@ -309,7 +309,7 @@ export default function App() {
     slide.background = { fill: 'FFFFFF' };
     
     slide.addImage({
-      path: window.location.origin + "/logo.png",
+      path: "https://pvghdem-alt.github.io/Power-management/logo.png",
       x: 4.25, y: 1.2, w: 1.5, h: 1.5
     });
 
@@ -385,7 +385,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="bg-white p-1 rounded-xl shadow-lg border border-slate-100">
               <img 
-                src="/logo.png" 
+                src="https://pvghdem-alt.github.io/Power-management/logo.png" 
                 alt="屏東榮民總醫院 Logo" 
                 className="w-12 h-12 object-contain"
                 referrerPolicy="no-referrer"
@@ -903,7 +903,7 @@ export default function App() {
                     <div className="flex justify-center mb-4">
                       <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-100">
                         <img 
-                          src="/logo.png" 
+                          src="https://pvghdem-alt.github.io/Power-management/logo.png" 
                           alt="屏東榮民總醫院 Logo" 
                           className="w-24 h-24 object-contain"
                           referrerPolicy="no-referrer"
